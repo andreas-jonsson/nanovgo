@@ -1,7 +1,7 @@
 package demo
 
 import (
-	"github.com/shibukawa/nanovgo"
+	"github.com/mode13/nanovgo"
 	"math"
 	"strconv"
 )
