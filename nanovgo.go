@@ -2,7 +2,7 @@ package nanovgo
 
 import (
 	"bytes"
-	"github.com/mode13/nanovgo/fontstashmini"
+	"github.com/andreas-jonsson/nanovgo/fontstashmini"
 	"image"
 	_ "image/jpeg" // to read jpeg
 	_ "image/png"  // to read png
