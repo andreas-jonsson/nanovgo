@@ -15,7 +15,12 @@ import (
 )
 
 type (
-	CurveTo struct {
+	QuadTo struct {
+		IsAbsolute   bool
+		Cx, Cy, X, Y float32
+	}
+
+	BezierTo struct {
 		IsAbsolute               bool
 		C1x, C1y, C2x, C2y, X, Y float32
 	}
@@ -37,13 +42,12 @@ type (
 
 type Path struct {
 	Id        string
-	Style     map[string]interface{}
+	Attr      Attributes
 	Segments  []interface{}
 	Transform nanovgo.TransformMatrix
 }
 
 func (p *Path) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error {
-	p.Style = make(map[string]interface{})
 	p.Transform = nanovgo.IdentityMatrix()
 
 	for _, attr := range start.Attr {
@@ -51,18 +55,13 @@ func (p *Path) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error 
 		case "id":
 			p.Id = attr.Value
 		case "style":
-			if err := p.parseStyle(attr.Value); err != nil {
+			if err := parseAttributes(&p.Attr, attr.Value); err != nil {
 				return err
 			}
 		case "d":
 			if err := p.parseSegments(attr.Value); err != nil {
 				return err
 			}
-		case "transform":
-			//g.TransformString = attr.Value
-			//t, err := parseTransform(g.TransformString)
-
-			//g.Transform = &t
 		}
 	}
 
@@ -78,29 +77,6 @@ func (p *Path) UnmarshalXML(decoder *xml.Decoder, start xml.StartElement) error 
 	}
 }
 
-func (p *Path) parseStyle(value string) error {
-	params := strings.Split(value, ";")
-	for _, param := range params {
-		kv := strings.Split(param, ":")
-		if len(kv) != 2 {
-			return fmt.Errorf("could not parse style: %s", strings.TrimSpace(param))
-		}
-
-		k := strings.TrimSpace(kv[0])
-		v := strings.TrimSpace(kv[1])
-
-		if intValue, err := strconv.ParseInt(v, 10, 32); err == nil {
-			p.Style[k] = int(intValue)
-		} else if floatValue, err := strconv.ParseFloat(v, 32); err == nil {
-			p.Style[k] = float32(floatValue)
-		} else {
-			p.Style[k] = v
-		}
-	}
-
-	return nil
-}
-
 func cleanSegmentString(s string) string {
 	var buf bytes.Buffer
 	for i, c := range s {
@@ -109,12 +85,11 @@ func cleanSegmentString(s string) string {
 		}
 		fmt.Fprintf(&buf, "%c", c)
 	}
-	return buf.String()
+	return strings.TrimSpace(buf.String())
 }
 
 func (p *Path) parseSegments(value string) error {
-	const controlCharacters = "aAcChHmMlLvVz"
-	fmt.Println(value)
+	const controlCharacters = "aAcChHmMlLsStTvVzZ"
 	value = cleanSegmentString(value)
 
 	splitCommands := func(c rune) bool {
@@ -194,7 +169,7 @@ func (p *Path) parseSegments(value string) error {
 			if len(args)%6 == 0 {
 				//Cubic Bezier
 				for i := 0; i < len(args); i += 6 {
-					p.Segments = append(p.Segments, CurveTo{
+					p.Segments = append(p.Segments, BezierTo{
 						isAbsolute,
 						toFloat(args[i]),
 						toFloat(args[i+1]),
@@ -206,11 +181,20 @@ func (p *Path) parseSegments(value string) error {
 				}
 			} else {
 				//Quadratic Bezier
-				//TODO Implement this. /aj
-				log.Println("Quadratic bezier curves are not implemented yet.")
+				for i := 0; i < len(args); i += 4 {
+					p.Segments = append(p.Segments, QuadTo{
+						isAbsolute,
+						toFloat(args[i]),
+						toFloat(args[i+1]),
+						toFloat(args[i+2]),
+						toFloat(args[i+3]),
+					})
+				}
 			}
-		case 'z':
+		case 'z', 'Z':
 			p.Segments = append(p.Segments, ClosePath{})
+		default:
+			return fmt.Errorf("unknown control character: %c", cmd)
 		}
 	}
 

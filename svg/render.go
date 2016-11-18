@@ -5,6 +5,8 @@ package svg
 import "github.com/mode13/nanovgo"
 
 func Render(ctx *nanovgo.Context, s *Svg) error {
+	ctx.SetStrokeWidth(1)
+
 	for _, g := range s.Groups {
 		if err := renderGroup(ctx, &g); err != nil {
 			return err
@@ -27,7 +29,7 @@ func renderGroup(ctx *nanovgo.Context, g *Group) error {
 				return err
 			}
 		default:
-			// return fmt.Errorf("unknown shape: %T", s)
+			//return fmt.Errorf("unknown shape: %T", s)
 		}
 	}
 
@@ -46,9 +48,6 @@ func renderPath(ctx *nanovgo.Context, p *Path) error {
 	ctx.SetStrokeColor(nanovgo.RGBA(255, 0, 0, 255))
 
 	for i, seg := range p.Segments {
-
-		//fmt.Printf("%T: %v\n", seg, seg)
-
 		switch t := seg.(type) {
 		case MoveTo:
 			if cmdSinceMove > 0 || i == 0 {
@@ -61,7 +60,10 @@ func renderPath(ctx *nanovgo.Context, p *Path) error {
 		case LineTo:
 			ctx.LineTo(t.X, t.Y)
 			numDrawCmd++
-		case CurveTo:
+		case QuadTo:
+			ctx.QuadTo(t.Cx, t.Cy, t.X, t.Y)
+			numDrawCmd++
+		case BezierTo:
 			ctx.BezierTo(t.C1x, t.C1y, t.C2x, t.C2y, t.X, t.Y)
 			numDrawCmd++
 		case ArcTo:
@@ -78,10 +80,22 @@ func renderPath(ctx *nanovgo.Context, p *Path) error {
 	}
 
 	if numDrawCmd > 0 {
-		ctx.Stroke()
-		//ctx.Fill()
-	} else {
-		ctx.Reset()
+		fill := &p.Attr.Fill
+		if fill.Has() {
+			ctx.SetFillColor(fill.color)
+			ctx.Fill()
+		}
+
+		stroke := &p.Attr.Stroke
+		if stroke.Has() {
+			width := stroke.Width()
+			if width > 0 {
+				ctx.SetStrokeWidth(width)
+			}
+			ctx.SetStrokeColor(stroke.color)
+			ctx.Stroke()
+		}
 	}
+
 	return nil
 }
