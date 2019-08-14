@@ -399,7 +399,7 @@ func (c *Context) CreateImageFromGoImage(imageFlag ImageFlags, img image.Image) 
 	bounds := img.Bounds()
 	size := bounds.Size()
 	rgba, ok := img.(*image.RGBA)
-	if ok {
+	if ok && size.X*size.Y*4 == len(rgba.Pix) {
 		return c.CreateImageRGBA(size.X, size.Y, imageFlag, rgba.Pix)
 	}
 	rgba = image.NewRGBA(bounds)
