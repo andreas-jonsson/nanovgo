@@ -397,18 +397,25 @@ func (c *Context) CreateImageFromMemory(flags ImageFlags, data []byte) int {
 // Returns handle to the image.
 func (c *Context) CreateImageFromGoImage(imageFlag ImageFlags, img image.Image) int {
 	bounds := img.Bounds()
-	size := bounds.Size()
+	w := bounds.Dx()
+	h := bounds.Dy()
+
 	rgba, ok := img.(*image.RGBA)
-	if ok && size.X*size.Y*4 == len(rgba.Pix) {
-		return c.CreateImageRGBA(size.X, size.Y, imageFlag, rgba.Pix)
+	if ok && w*h*4 == len(rgba.Pix) {
+		return c.CreateImageRGBA(w, h, imageFlag, rgba.Pix)
 	}
-	rgba = image.NewRGBA(bounds)
-	for x := 0; x < size.X; x++ {
-		for y := 0; y < size.Y; y++ {
-			rgba.Set(x, y, img.At(x, y))
+	rgba = image.NewRGBA(image.Rect(0, 0, w, h))
+
+	srcX := bounds.Min.X
+	for x := 0; x < w; x++ {
+		srcY := bounds.Min.Y
+		for y := 0; y < h; y++ {
+			rgba.Set(x, y, img.At(srcX, srcY))
+			srcY++
 		}
+		srcX++
 	}
-	return c.CreateImageRGBA(size.X, size.Y, imageFlag, rgba.Pix)
+	return c.CreateImageRGBA(w, h, imageFlag, rgba.Pix)
 }
 
 // CreateImageRGBA creates image from specified image data.
