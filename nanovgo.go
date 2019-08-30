@@ -7,7 +7,29 @@ import (
 	_ "image/jpeg" // to read jpeg
 	_ "image/png"  // to read png
 	"log"
+	"fmt"
 	"os"
+)
+
+// Image represents a GPU texture resource.
+type Image int
+
+func (img Image) String() string {
+	return fmt.Sprintf("0x%d", int(img))
+}
+
+type (
+	ImageLoader interface {
+		CreateImage(filePath string, flags ImageFlags) Image
+		CreateImageFromMemory(flags ImageFlags, data []byte) Image
+		CreateImageFromGoImage(imageFlag ImageFlags, img image.Image) Image
+		CreateImageRGBA(w, h int, imageFlags ImageFlags, data []byte) Image
+		UpdateImage(img Image, data []byte) error
+	}
+
+	ImageUnloader interface {
+		DeleteImage(img Image)
+	}
 )
 
 // Context is an entry point object to use NanoVGo API and created by NewContext() function.
@@ -129,7 +151,7 @@ func (c *Context) Delete() {
 
 	for i, fontImage := range c.fontImages {
 		if fontImage != 0 {
-			c.DeleteImage(fontImage)
+			c.DeleteImage(Image(fontImage))
 			c.fontImages[i] = 0
 		}
 	}
@@ -171,12 +193,12 @@ func (c *Context) EndFrame() {
 		if fontImage == 0 {
 			return
 		}
-		iw, ih, _ := c.ImageSize(fontImage)
+		iw, ih, _ := c.ImageSize(Image(fontImage))
 		j := 0
 		for i := 0; i < c.fontImageIdx; i++ {
-			nw, nh, _ := c.ImageSize(c.fontImages[i])
+			nw, nh, _ := c.ImageSize(Image(c.fontImages[i]))
 			if nw < iw || nh < ih {
-				c.DeleteImage(c.fontImages[i])
+				c.DeleteImage(Image(c.fontImages[i]))
 			} else {
 				c.fontImages[j] = c.fontImages[i]
 				j++
@@ -369,7 +391,7 @@ func (c *Context) SetFillPaint(paint Paint) {
 
 // CreateImage creates image by loading it from the disk from specified file name.
 // Returns handle to the image.
-func (c *Context) CreateImage(filePath string, flags ImageFlags) int {
+func (c *Context) CreateImage(filePath string, flags ImageFlags) Image {
 	file, err := os.Open(filePath)
 	defer file.Close()
 	if err != nil {
@@ -384,7 +406,7 @@ func (c *Context) CreateImage(filePath string, flags ImageFlags) int {
 
 // CreateImageFromMemory creates image by loading it from the specified chunk of memory.
 // Returns handle to the image.
-func (c *Context) CreateImageFromMemory(flags ImageFlags, data []byte) int {
+func (c *Context) CreateImageFromMemory(flags ImageFlags, data []byte) Image {
 	reader := bytes.NewReader(data)
 	img, _, err := image.Decode(reader)
 	if err != nil {
@@ -395,7 +417,7 @@ func (c *Context) CreateImageFromMemory(flags ImageFlags, data []byte) int {
 
 // CreateImageFromGoImage creates image by loading it from the specified image.Image object.
 // Returns handle to the image.
-func (c *Context) CreateImageFromGoImage(imageFlag ImageFlags, img image.Image) int {
+func (c *Context) CreateImageFromGoImage(imageFlag ImageFlags, img image.Image) Image {
 	bounds := img.Bounds()
 	w := bounds.Dx()
 	h := bounds.Dy()
@@ -420,27 +442,27 @@ func (c *Context) CreateImageFromGoImage(imageFlag ImageFlags, img image.Image) 
 
 // CreateImageRGBA creates image from specified image data.
 // Returns handle to the image.
-func (c *Context) CreateImageRGBA(w, h int, imageFlags ImageFlags, data []byte) int {
-	return c.params.renderCreateTexture(nvgTextureRGBA, w, h, imageFlags, data)
+func (c *Context) CreateImageRGBA(w, h int, imageFlags ImageFlags, data []byte) Image {
+	return Image(c.params.renderCreateTexture(nvgTextureRGBA, w, h, imageFlags, data))
 }
 
 // UpdateImage updates image data specified by image handle.
-func (c *Context) UpdateImage(img int, data []byte) error {
-	w, h, err := c.params.renderGetTextureSize(img)
+func (c *Context) UpdateImage(img Image, data []byte) error {
+	w, h, err := c.params.renderGetTextureSize(int(img))
 	if err != nil {
 		return err
 	}
-	return c.params.renderUpdateTexture(img, 0, 0, w, h, data)
+	return c.params.renderUpdateTexture(int(img), 0, 0, w, h, data)
 }
 
 // ImageSize returns the dimensions of a created image.
-func (c *Context) ImageSize(img int) (int, int, error) {
-	return c.params.renderGetTextureSize(img)
+func (c *Context) ImageSize(img Image) (int, int, error) {
+	return c.params.renderGetTextureSize(int(img))
 }
 
 // DeleteImage deletes created image.
-func (c *Context) DeleteImage(img int) {
-	c.params.renderDeleteTexture(img)
+func (c *Context) DeleteImage(img Image) {
+	c.params.renderDeleteTexture(int(img))
 }
 
 // Scissor sets the current scissor rectangle.
@@ -1523,9 +1545,9 @@ func (c *Context) allocTextAtlas() bool {
 	var iw, ih int
 	// if next fontImage already have a texture
 	if c.fontImages[c.fontImageIdx+1] != 0 {
-		iw, ih, _ = c.ImageSize(c.fontImages[c.fontImageIdx+1])
+		iw, ih, _ = c.ImageSize(Image(c.fontImages[c.fontImageIdx+1]))
 	} else { // calculate the new font image size and create it.
-		iw, ih, _ = c.ImageSize(c.fontImages[c.fontImageIdx])
+		iw, ih, _ = c.ImageSize(Image(c.fontImages[c.fontImageIdx]))
 		if iw > ih {
 			ih *= 2
 		} else {

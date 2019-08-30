@@ -18,7 +18,7 @@ const (
 // DemoData keeps font and image handlers
 type DemoData struct {
 	FontNormal, FontBold, FontIcons int
-	Images                          []int
+	Images                          []nanovgo.Image
 }
 
 func (d *DemoData) FreeData(ctx *nanovgo.Context) {
@@ -578,7 +578,7 @@ func drawSpinner(ctx *nanovgo.Context, cx, cy, r, t float32) {
 	ctx.Fill()
 }
 
-func drawThumbnails(ctx *nanovgo.Context, x, y, w, h float32, images []int, t float32) {
+func drawThumbnails(ctx *nanovgo.Context, x, y, w, h float32, images []nanovgo.Image, t float32) {
 	var cornerRadius float32 = 3.0
 
 	var thumb float32 = 60.0
