@@ -4,11 +4,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/goxjs/gl"
-	"github.com/goxjs/glfw"
 	"github.com/andreas-jonsson/nanovgo"
 	"github.com/andreas-jonsson/nanovgo/perfgraph"
 	"github.com/andreas-jonsson/nanovgo/sample/demo"
+	"github.com/goxjs/gl"
+	"github.com/goxjs/glfw"
 	"io/ioutil"
 	"log"
 	"net/http"

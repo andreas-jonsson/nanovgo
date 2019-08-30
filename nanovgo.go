@@ -2,12 +2,12 @@ package nanovgo
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/andreas-jonsson/nanovgo/fontstashmini"
 	"image"
 	_ "image/jpeg" // to read jpeg
 	_ "image/png"  // to read png
 	"log"
-	"fmt"
 	"os"
 )
 

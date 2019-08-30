@@ -12,7 +12,7 @@ const (
 	FONS_INIT_FONTS       = 4
 	FONS_INIT_GLYPHS      = 256
 	FONS_INIT_ATLAS_NODES = 256
-	INVALID = -1
+	INVALID               = -1
 )
 
 type FONSAlign int
@@ -338,7 +338,7 @@ func (stash *FontStash) TextIterForRunes(x, y float32, runes []rune) *TextIterat
 		width, _ := stash.TextBoundsOfRunes(x, y, runes)
 		x -= width * 0.5
 	}
-	y += stash.getVerticalAlign(font, state.align, state.size * 10.0)
+	y += stash.getVerticalAlign(font, state.align, state.size*10.0)
 	iter := &TextIterator{
 		stash:        stash,
 		font:         font,
